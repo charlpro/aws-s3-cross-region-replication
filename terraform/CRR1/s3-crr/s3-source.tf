@@ -77,7 +77,6 @@ resource "aws_s3_bucket_versioning" "source_versioning" {
 
 resource "aws_s3_bucket_replication_configuration" "replication" {
   provider = aws.source
-  # Must have bucket versioning enabled first
   depends_on = [aws_s3_bucket_versioning.source_versioning, aws_s3_bucket_versioning.dest_versioning]
 
   role   = aws_iam_role.source_replication.arn
