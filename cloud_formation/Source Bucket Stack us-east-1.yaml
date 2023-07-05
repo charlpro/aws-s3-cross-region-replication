@@ -1,0 +1,65 @@
+############################################################################################################################
+# Must launch this template in CloudFormation us-east-1 region. Must launch after destination bucket template is launched. #
+############################################################################################################################
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DestinationBucketName:
+    Type: String
+    Description: Add ONLY the name of the bucket you created from the Destination Bucket CloudFormation Template
+    Default: destination-us-west-2
+
+  SourceBucketName:
+    Type: String
+    Description: Add a name for your source bucket (must be globally unique)
+    Default: source-us-east-1
+
+Resources:
+
+# The Source Bucket will be the bucket where backups are originally stored. The BucketName must be globally unique. 
+  SourceBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Ref SourceBucketName  # source bucket name
+      VersioningConfiguration:
+        Status: Enabled
+      ReplicationConfiguration:
+        Role: !GetAtt SourceBucketReplicationRole.Arn
+        Rules:
+          - Id: CrossRegionReplicationRule
+            Status: Enabled
+            Prefix: ''
+            Destination:
+              Bucket: !Join ['', ['arn:aws:s3:::', !Ref DestinationBucketName]]  # ARN of the destination bucket from the us-west-2 deployment
+              StorageClass: STANDARD_IA
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+# The SourceBucketReplicationRole is an Identity and Access Management (IAM) role that Amazon S3 can assume to replicate objects on your behalf
+  SourceBucketReplicationRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: SourceBucketReplicationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObjectVersion'
+                  - 's3:GetObjectVersionAcl'
+                Resource:
+                  - !Join ['', ['arn:aws:s3:::', !Ref SourceBucketName, '/*']]  # ARN of the source bucket
+              - Effect: Allow
+                Action:
+                  - 's3:ReplicateObject'
+                  - 's3:ReplicateDelete'
+                Resource: !Join ['', ['arn:aws:s3:::', !Ref DestinationBucketName, '/*']]  # ARN of the destination bucket

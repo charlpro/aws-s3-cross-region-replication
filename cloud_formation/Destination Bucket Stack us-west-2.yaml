@@ -1,0 +1,21 @@
+################################################################################################################################################################
+# Destination Bucket is where all objects will be replicated. Must launch this prior to the source bucket template. Launch in CloudFormation us-west-2 region. #
+################################################################################################################################################################
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DestinationBucketName:
+    Type: String
+    Description: Add a name for your destination bucket (must be globally unique)
+    Default: destination-us-west-2 
+
+Resources:
+  DestinationBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Ref DestinationBucketName  # destination bucket name
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
